@@ -1,7 +1,25 @@
+using System.Runtime.InteropServices;
+using System.Windows.Forms.VisualStyles;
+
 namespace EdgeDetectionApp
 {
     public partial class Form1 : Form
     {
+        // Import Sobel's function from AsmDLL
+        // TO-DO: Shorten the path to the file so that anyone can execute it, not just on your computer
+        [DllImport("C:\\Users\\Admin\\source\\repos\\edge-detection-app\\EdgeDetectionApp\\x64\\Debug\\AsmDLL.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern int MyProc1(int x, int y);
+
+        // Import Sobel's function from CppDLL
+        [DllImport("CppDLL.dll")]
+        public static extern IntPtr Create(int x);
+
+        [DllImport("CppDLL.dll")]
+        public static extern int AttemptAdd(IntPtr a, int y);
+        
+        IntPtr a = Create(5);
+
+
         public Form1()
         {
             InitializeComponent();
@@ -47,10 +65,13 @@ namespace EdgeDetectionApp
             if (selectedOption == "C++")
             {
                 // CPP DLL
+                MessageBox.Show("" + AttemptAdd(a, 10));
             }
             else if (selectedOption == "Assembly")
             {
                 // ASM DLL
+                int z = MyProc1(3, 4);
+                MessageBox.Show("" + z);
             }
             else
             {

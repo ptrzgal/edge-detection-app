@@ -8,4 +8,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\AsmDLL\AsmDLL.vcxproj" />
+    <ProjectReference Include="..\CppDLL\CppDLL.vcxproj" />
+  </ItemGroup>
+
 </Project>
