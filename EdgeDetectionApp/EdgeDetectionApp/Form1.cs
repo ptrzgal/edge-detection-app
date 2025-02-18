@@ -1,3 +1,4 @@
+using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Windows.Forms.VisualStyles;
 
@@ -11,14 +12,8 @@ namespace EdgeDetectionApp
         public static extern int MyProc1(int x, int y);
 
         // Import Sobel's function from CppDLL
-        [DllImport("CppDLL.dll")]
-        public static extern IntPtr Create(int x);
-
-        [DllImport("CppDLL.dll")]
-        public static extern int AttemptAdd(IntPtr a, int y);
-        
-        IntPtr a = Create(5);
-
+        [DllImport("CppDLL.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SobelFilter32bpp(IntPtr data, int width, int height, int stride);
 
         public Form1()
         {
@@ -49,23 +44,70 @@ namespace EdgeDetectionApp
         }
 
         /// <summary>
+        /// Function responsible for the event when “Save” is pressed
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Check if there is any processed image in pictureBox2
+            if (pictureBox2.Image == null)
+            {
+                MessageBox.Show("There is no processed image to save. Please process an image first.");
+                return;
+            }
+
+            // We create a save dialog box
+            using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+            {
+                saveFileDialog.Filter = "Bitmap Files|*.bmp";
+                saveFileDialog.Title = "Save a Bitmap Image";
+
+                // If the user selected a path and pressed OK
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    // We save the image from pictureBox2 in BMP format
+                    pictureBox2.Image.Save(saveFileDialog.FileName, ImageFormat.Bmp);
+                }
+            }
+        }
+
+
+        /// <summary>
         /// Function responsible for the event when “Start” is pressed
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void Button1_Click(object sender, EventArgs e)
         {
-            // Get the selected option from the comboBox1 control and convert it to a string. The ? character
-            // indicates that the variable may be null (string?) or prevents exceptions by returning null if
-            // the object to the left of the ?. operator is null.
             string? selectedOption = comboBox1.SelectedItem?.ToString();
-
 
             // Depending on the option selected in comboBox1, logic from the appropriate library is selected
             if (selectedOption == "C++")
             {
-                // CPP DLL
-                MessageBox.Show("" + AttemptAdd(a, 10));
+                if (pictureBox1.Image == null)
+                {
+                    MessageBox.Show("Please upload an image first.");
+                    return;
+                }
+
+                // Make a copy of the image from pictureBox1 so you can modify it
+                Bitmap bmp = new Bitmap(pictureBox1.Image);
+                Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+
+                // Bitmap locking for memory operations
+                BitmapData bmpData = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppRgb);
+
+                // Calling a function from C++ (SobelFilter32bpp) on locked data
+                SobelFilter32bpp(bmpData.Scan0, bmp.Width, bmp.Height, bmpData.Stride);
+
+                // Unlocking the bitmap after the modification is complete
+                bmp.UnlockBits(bmpData);
+
+                // Displaying the processed image in pictureBox2
+                pictureBox2.Image = bmp;
+                pictureBox2.SizeMode = PictureBoxSizeMode.Zoom;
+
             }
             else if (selectedOption == "Assembly")
             {
