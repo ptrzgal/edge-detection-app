@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Windows.Forms.VisualStyles;
@@ -98,8 +99,15 @@ namespace EdgeDetectionApp
                 // Bitmap locking for memory operations
                 BitmapData bmpData = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppRgb);
 
+                Stopwatch stopwatch = new Stopwatch();
+                stopwatch.Start();
+
                 // Calling a function from C++ (SobelFilter32bpp) on locked data
                 SobelFilter32bpp(bmpData.Scan0, bmp.Width, bmp.Height, bmpData.Stride);
+
+                stopwatch.Stop();
+
+                labelExecutionTime.Text = $"Execution time: {stopwatch.ElapsedMilliseconds} ms";
 
                 // Unlocking the bitmap after the modification is complete
                 bmp.UnlockBits(bmpData);
@@ -119,11 +127,6 @@ namespace EdgeDetectionApp
             {
                 MessageBox.Show("Please choose which library you prefer.");
             }
-        }
-
-        private void ProgressBar1_Click(object sender, EventArgs e)
-        {
-
         }
     }
 }

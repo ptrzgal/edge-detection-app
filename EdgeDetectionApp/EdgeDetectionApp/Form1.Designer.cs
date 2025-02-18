@@ -34,8 +34,7 @@ namespace EdgeDetectionApp
             pictureBox1 = new PictureBox();
             pictureBox2 = new PictureBox();
             button1 = new Button();
-            progressBar1 = new ProgressBar();
-            label1 = new Label();
+            labelExecutionTime = new Label();
             menuStrip1 = new MenuStrip();
             uploadToolStripMenuItem = new ToolStripMenuItem();
             saveToolStripMenuItem = new ToolStripMenuItem();
@@ -50,7 +49,7 @@ namespace EdgeDetectionApp
             // 
             // pictureBox1
             // 
-            pictureBox1.Location = new Point(49, 77);
+            pictureBox1.Location = new Point(12, 77);
             pictureBox1.Margin = new Padding(3, 4, 3, 4);
             pictureBox1.Name = "pictureBox1";
             pictureBox1.Size = new Size(343, 400);
@@ -60,7 +59,7 @@ namespace EdgeDetectionApp
             // 
             // pictureBox2
             // 
-            pictureBox2.Location = new Point(539, 77);
+            pictureBox2.Location = new Point(591, 77);
             pictureBox2.Margin = new Padding(3, 4, 3, 4);
             pictureBox2.Name = "pictureBox2";
             pictureBox2.Size = new Size(343, 400);
@@ -69,7 +68,7 @@ namespace EdgeDetectionApp
             // 
             // button1
             // 
-            button1.Location = new Point(426, 259);
+            button1.Location = new Point(431, 212);
             button1.Margin = new Padding(3, 4, 3, 4);
             button1.Name = "button1";
             button1.Size = new Size(86, 31);
@@ -78,23 +77,14 @@ namespace EdgeDetectionApp
             button1.UseVisualStyleBackColor = true;
             button1.Click += Button1_Click;
             // 
-            // progressBar1
+            // labelExecutionTime
             // 
-            progressBar1.Location = new Point(49, 529);
-            progressBar1.Margin = new Padding(3, 4, 3, 4);
-            progressBar1.Name = "progressBar1";
-            progressBar1.Size = new Size(833, 39);
-            progressBar1.TabIndex = 3;
-            progressBar1.Click += ProgressBar1_Click;
-            // 
-            // label1
-            // 
-            label1.AutoSize = true;
-            label1.Location = new Point(399, 505);
-            label1.Name = "label1";
-            label1.Size = new Size(145, 20);
-            label1.TabIndex = 4;
-            label1.Text = "Execution time: 0 ms";
+            labelExecutionTime.AutoSize = true;
+            labelExecutionTime.Location = new Point(394, 457);
+            labelExecutionTime.Name = "labelExecutionTime";
+            labelExecutionTime.Size = new Size(145, 20);
+            labelExecutionTime.TabIndex = 4;
+            labelExecutionTime.Text = "Execution time: 0 ms";
             // 
             // menuStrip1
             // 
@@ -125,7 +115,7 @@ namespace EdgeDetectionApp
             // 
             comboBox1.FormattingEnabled = true;
             comboBox1.Items.AddRange(new object[] { "C++", "Assembly" });
-            comboBox1.Location = new Point(399, 387);
+            comboBox1.Location = new Point(406, 284);
             comboBox1.Margin = new Padding(3, 4, 3, 4);
             comboBox1.Name = "comboBox1";
             comboBox1.Size = new Size(133, 28);
@@ -134,7 +124,7 @@ namespace EdgeDetectionApp
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(441, 363);
+            label2.Location = new Point(446, 260);
             label2.Name = "label2";
             label2.Size = new Size(54, 20);
             label2.TabIndex = 7;
@@ -162,13 +152,12 @@ namespace EdgeDetectionApp
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(946, 623);
+            ClientSize = new Size(946, 506);
             Controls.Add(label4);
             Controls.Add(label3);
             Controls.Add(label2);
             Controls.Add(comboBox1);
-            Controls.Add(label1);
-            Controls.Add(progressBar1);
+            Controls.Add(labelExecutionTime);
             Controls.Add(button1);
             Controls.Add(pictureBox2);
             Controls.Add(pictureBox1);
@@ -190,8 +179,7 @@ namespace EdgeDetectionApp
         private PictureBox pictureBox1;
         private PictureBox pictureBox2;
         private Button button1;
-        private ProgressBar progressBar1;
-        private Label label1;
+        private Label labelExecutionTime;
         private MenuStrip menuStrip1;
         private ToolStripMenuItem uploadToolStripMenuItem;
         private ToolStripMenuItem saveToolStripMenuItem;
