@@ -124,7 +124,6 @@ namespace EdgeDetectionApp
 
             // Start counting time
             Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
 
             if (selectedOption == "C++")
             {
@@ -136,8 +135,10 @@ namespace EdgeDetectionApp
                     IntPtr ptrIn = handleIn.AddrOfPinnedObject();
                     IntPtr ptrOut = handleOut.AddrOfPinnedObject();
 
-                    // Calling a Sobel's function from CppDLL
+                    // Calling and timming a Sobel's function from CppDLL
+                    stopwatch.Start();
                     CppSobelFunction(ptrIn, ptrOut, width, height);
+                    stopwatch.Stop();
                 }
                 finally
                 {
@@ -155,8 +156,10 @@ namespace EdgeDetectionApp
                     IntPtr ptrIn = handleIn.AddrOfPinnedObject();
                     IntPtr ptrOut = handleOut.AddrOfPinnedObject();
 
-                    // Calling a Sobel's function from AsmDLL
+                    // Calling and timming a Sobel's function from AsmDLL
+                    stopwatch.Start();
                     AsmSobelFunction(ptrIn, ptrOut, width, height);
+                    stopwatch.Stop();
                 }
                 finally
                 {
@@ -170,7 +173,6 @@ namespace EdgeDetectionApp
                 return;
             }
 
-            stopwatch.Stop();
             labelExecutionTime.Text = $"Execution time: {stopwatch.ElapsedMilliseconds} ms";
 
             // Create a 32bpp output bitmap and copy 8-bit data to it (outputGray)
