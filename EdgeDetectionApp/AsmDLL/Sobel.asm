@@ -6,6 +6,17 @@ PUBLIC AsmSobelFunction
 .code
 
 ; Sobel filter function for edge detection in an image
+; Input parameters:
+;   RCX - pointer to the input image (inputImage)
+;   RDX - pointer to the output image (outputImage)
+;   R8  - image width (width)
+;   R9  - image height (height)
+;
+; Output parameters:
+;   The output image is stored in the memory pointed to by RDX (outputImage) after applying the Sobel filter.
+;
+; Registers modified:
+;   RAX, RBX, RCX, RDX, RSI, RDI, R10, R11, R12, R13, R14, R15 and the local stack space (64 bytes)
 AsmSobelFunction PROC
     ; ----------------- Function Prologue -----------------
     ; Save non-volatile registers as per the Microsoft x64 calling convention
