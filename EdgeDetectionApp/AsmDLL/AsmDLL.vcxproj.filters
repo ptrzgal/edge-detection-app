@@ -15,12 +15,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="test.asm">
+    <MASM Include="Sobel.asm">
       <Filter>Source Files</Filter>
     </MASM>
   </ItemGroup>
   <ItemGroup>
-    <None Include="test.def">
+    <None Include="Sobel.def">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

@@ -1,28 +1,32 @@
+using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
-using System.Windows.Forms.VisualStyles;
+using System.Windows.Forms;
 
 namespace EdgeDetectionApp
 {
     public partial class Form1 : Form
     {
-        // Import Sobel's function from AsmDLL
-        // TO-DO: Shorten the path to the file so that anyone can execute it, not just on your computer
-        [DllImport("C:\\Users\\Admin\\source\\repos\\edge-detection-app\\EdgeDetectionApp\\x64\\Debug\\AsmDLL.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern int MyProc1(int x, int y);
+        // Importing Sobel's function from the AsmDLL library
+        [DllImport("AsmDLL.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern void AsmSobelFunction(IntPtr inputImage, IntPtr outputImage, int width, int height);
 
-        // Import Sobel's function from CppDLL
+        // Importing Sobel's function from the CppDLL library
         [DllImport("CppDLL.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SobelFilter32bpp(IntPtr data, int width, int height, int stride);
+        public static extern void CppSobelFunction(IntPtr inputImage, IntPtr outputImage, int width, int height);
 
+        /// <summary>
+        /// Constructor initializing components
+        /// </summary>
         public Form1()
         {
             InitializeComponent();
         }
 
         /// <summary>
-        /// Function responsible for the event when “Upload” is pressed
+        /// The function responsible for the logic after pressing the "Upload" button
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -30,103 +34,178 @@ namespace EdgeDetectionApp
         {
             using (OpenFileDialog openFileDialog = new OpenFileDialog())
             {
-                // Filter that allows you to select the type of file you are uploading
                 openFileDialog.Filter = "Bitmap Files|*.bmp";
                 openFileDialog.Title = "Select a Bitmap Image";
 
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
                     string filePath = openFileDialog.FileName;
-
-                    // Loading a bitmap and setting it up in pictureBox1
                     pictureBox1.Image = Image.FromFile(filePath);
                 }
             }
         }
 
         /// <summary>
-        /// Function responsible for the event when “Save” is pressed
+        /// The function responsible for the logic after pressing the "Save" button
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            // Check if there is any processed image in pictureBox2
             if (pictureBox2.Image == null)
             {
                 MessageBox.Show("There is no processed image to save. Please process an image first.");
                 return;
             }
 
-            // We create a save dialog box
             using (SaveFileDialog saveFileDialog = new SaveFileDialog())
             {
                 saveFileDialog.Filter = "Bitmap Files|*.bmp";
                 saveFileDialog.Title = "Save a Bitmap Image";
 
-                // If the user selected a path and pressed OK
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    // We save the image from pictureBox2 in BMP format
                     pictureBox2.Image.Save(saveFileDialog.FileName, ImageFormat.Bmp);
                 }
             }
         }
 
-
         /// <summary>
-        /// Function responsible for the event when “Start” is pressed
+        /// The function responsible for the logic after pressing the "Start" button
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void Button1_Click(object sender, EventArgs e)
         {
+            // Check what user has selected in comboBox1 (e.g. "C++" or "Assembly")
             string? selectedOption = comboBox1.SelectedItem?.ToString();
 
-            // Depending on the option selected in comboBox1, logic from the appropriate library is selected
+            if (pictureBox1.Image == null)
+            {
+                MessageBox.Show("Please upload an image first.");
+                return;
+            }
+
+            // Convert the image 32bpp -> 8bpp (gray)
+            Bitmap sourceBmp = new Bitmap(pictureBox1.Image);
+            int width = sourceBmp.Width;
+            int height = sourceBmp.Height;
+
+            byte[] inputGray = new byte[width * height];
+            byte[] outputGray = new byte[width * height];
+
+            Rectangle rect = new Rectangle(0, 0, width, height);
+            BitmapData bmpData = sourceBmp.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppRgb);
+            try
+            {
+                IntPtr scan0 = bmpData.Scan0;
+                int stride = bmpData.Stride;
+                for (int yRow = 0; yRow < height; yRow++)
+                {
+                    int rowStart = yRow * stride;
+                    for (int xCol = 0; xCol < width; xCol++)
+                    {
+                        int pixelOffset = rowStart + xCol * 4; // 4 bytes/pixel (BGRA)
+                        byte b = Marshal.ReadByte(scan0, pixelOffset + 0);
+                        byte g = Marshal.ReadByte(scan0, pixelOffset + 1);
+                        byte r = Marshal.ReadByte(scan0, pixelOffset + 2);
+
+                        double grayF = 0.299 * r + 0.587 * g + 0.114 * b;
+                        if (grayF > 255) grayF = 255;
+                        if (grayF < 0) grayF = 0;
+                        inputGray[yRow * width + xCol] = (byte)grayF;
+                    }
+                }
+            }
+            finally
+            {
+                sourceBmp.UnlockBits(bmpData);
+            }
+
+            // Start counting time
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             if (selectedOption == "C++")
             {
-                if (pictureBox1.Image == null)
+                // Pin the boards
+                GCHandle handleIn = GCHandle.Alloc(inputGray, GCHandleType.Pinned);
+                GCHandle handleOut = GCHandle.Alloc(outputGray, GCHandleType.Pinned);
+                try
                 {
-                    MessageBox.Show("Please upload an image first.");
-                    return;
+                    IntPtr ptrIn = handleIn.AddrOfPinnedObject();
+                    IntPtr ptrOut = handleOut.AddrOfPinnedObject();
+
+                    // Calling a Sobel's function from CppDLL
+                    CppSobelFunction(ptrIn, ptrOut, width, height);
                 }
-
-                // Make a copy of the image from pictureBox1 so you can modify it
-                Bitmap bmp = new Bitmap(pictureBox1.Image);
-                Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
-
-                // Bitmap locking for memory operations
-                BitmapData bmpData = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppRgb);
-
-                Stopwatch stopwatch = new Stopwatch();
-                stopwatch.Start();
-
-                // Calling a function from C++ (SobelFilter32bpp) on locked data
-                SobelFilter32bpp(bmpData.Scan0, bmp.Width, bmp.Height, bmpData.Stride);
-
-                stopwatch.Stop();
-
-                labelExecutionTime.Text = $"Execution time: {stopwatch.ElapsedMilliseconds} ms";
-
-                // Unlocking the bitmap after the modification is complete
-                bmp.UnlockBits(bmpData);
-
-                // Displaying the processed image in pictureBox2
-                pictureBox2.Image = bmp;
-                pictureBox2.SizeMode = PictureBoxSizeMode.Zoom;
-
+                finally
+                {
+                    handleIn.Free();
+                    handleOut.Free();
+                }
             }
             else if (selectedOption == "Assembly")
             {
-                // ASM DLL
-                int z = MyProc1(3, 4);
-                MessageBox.Show("" + z);
+                // Pin the boards
+                GCHandle handleIn = GCHandle.Alloc(inputGray, GCHandleType.Pinned);
+                GCHandle handleOut = GCHandle.Alloc(outputGray, GCHandleType.Pinned);
+                try
+                {
+                    IntPtr ptrIn = handleIn.AddrOfPinnedObject();
+                    IntPtr ptrOut = handleOut.AddrOfPinnedObject();
+
+                    // Calling a Sobel's function from AsmDLL
+                    AsmSobelFunction(ptrIn, ptrOut, width, height);
+                }
+                finally
+                {
+                    handleIn.Free();
+                    handleOut.Free();
+                }
             }
             else
             {
                 MessageBox.Show("Please choose which library you prefer.");
+                return;
             }
+
+            stopwatch.Stop();
+            labelExecutionTime.Text = $"Execution time: {stopwatch.ElapsedMilliseconds} ms";
+
+            // Create a 32bpp output bitmap and copy 8-bit data to it (outputGray)
+            Bitmap resultBmp = new Bitmap(width, height, PixelFormat.Format32bppRgb);
+            BitmapData resultData = resultBmp.LockBits(
+                new Rectangle(0, 0, width, height),
+                ImageLockMode.WriteOnly,
+                PixelFormat.Format32bppRgb
+            );
+            try
+            {
+                int strideRes = resultData.Stride;
+                IntPtr scanRes = resultData.Scan0;
+                for (int yRow = 0; yRow < height; yRow++)
+                {
+                    int rowStart = yRow * strideRes;
+                    for (int xCol = 0; xCol < width; xCol++)
+                    {
+                        byte gray = outputGray[yRow * width + xCol];
+                        // B, G, R set to gray and alpha = 255
+                        Marshal.WriteByte(scanRes, rowStart + xCol * 4 + 0, gray); // Blue
+                        Marshal.WriteByte(scanRes, rowStart + xCol * 4 + 1, gray); // Green
+                        Marshal.WriteByte(scanRes, rowStart + xCol * 4 + 2, gray); // Red
+                        Marshal.WriteByte(scanRes, rowStart + xCol * 4 + 3, 255);  // Alpha
+                    }
+                }
+            }
+            finally
+            {
+                resultBmp.UnlockBits(resultData);
+            }
+
+            // Display the result in pictureBox2
+            pictureBox2.Image = resultBmp;
+            pictureBox2.SizeMode = PictureBoxSizeMode.Zoom;
         }
     }
 }

@@ -1,94 +1,48 @@
-#include "Sobel.h"
 #include "pch.h"
-
-#include <windows.h>
-#include <vector>
+#include "Sobel.h"
 #include <cmath>
-#include <cstring>
+#include <algorithm>
 
-extern "C" __declspec(dllexport)
-void SobelFilter32bpp(unsigned char* data, int width, int height, int stride)
-{
-    // Output buffer the same size as original data
-    std::vector<unsigned char> output(height * stride);
+static const int Gx[3][3] = {
+    { 1,  0, -1 },
+    { 2, 0, -2 },
+    { 1,  0, -1 }
+};
 
-    // Sobel masks definitions (Gx and Gy)
-    int Gx[3][3] = {
-        { -1,  0,  1 },
-        { -2,  0,  2 },
-        { -1,  0,  1 }
-    };
-    int Gy[3][3] = {
-        { -1, -2, -1 },
-        {  0,  0,  0 },
-        {  1,  2,  1 }
-    };
+static const int Gy[3][3] = {
+    { 1,  2,  1 },
+    { 0,   0,  0 },
+    { -1, -2, -1 }
+};
 
-    // We process pixels ignoring the edges to avoid going out of range
-    for (int y = 1; y < height - 1; y++)
-    {
-        for (int x = 1; x < width - 1; x++)
-        {
-            double sumX = 0.0;
-            double sumY = 0.0;
+extern "C" __declspec(dllexport) void __cdecl CppSobelFunction(const unsigned char* inputImage, unsigned char* outputImage, int width, int height) {
+    for (int x = 0; x < width; x++) {
+        outputImage[x] = 0;
+        outputImage[(height - 1) * width + x] = 0;
+    }
+    for (int y = 0; y < height; y++) {
+        outputImage[y * width] = 0;
+        outputImage[y * width + (width - 1)] = 0;
+    }
 
-            // For each pixel in a 3x3 window around (x, y)
-            for (int ky = -1; ky <= 1; ky++)
-            {
-                for (int kx = -1; kx <= 1; kx++)
-                {
-                    int px = x + kx;
-                    int py = y + ky;
+    for (int y = 1; y < height - 1; y++) {
+        for (int x = 1; x < width - 1; x++) {
+            int sumX = 0;
+            int sumY = 0;
 
-                    // We calculate the offset for 32bpp: 4 bytes per pixel
-                    int idx = py * stride + px * 4;
-
-                    // We read channels (BGRA)
-                    unsigned char b = data[idx + 0];
-                    unsigned char g = data[idx + 1];
-                    unsigned char r = data[idx + 2];
-
-                    // Convert to grayscale
-                    double gray = 0.299 * r + 0.587 * g + 0.114 * b;
-
-                    sumX += gray * Gx[ky + 1][kx + 1];
-                    sumY += gray * Gy[ky + 1][kx + 1];
+            for (int j = -1; j <= 1; j++) {
+                for (int i = -1; i <= 1; i++) {
+                    int pixel = inputImage[(y + j) * width + (x + i)];
+                    sumX += pixel * Gx[j + 1][i + 1];
+                    sumY += pixel * Gy[j + 1][i + 1];
                 }
             }
 
-            // We calculate the gradient magnitude
-            double magnitude = std::sqrt(sumX * sumX + sumY * sumY);
-            if (magnitude > 255) magnitude = 255; // We prevent exceeding the 8-bit range
-
-            unsigned char edgeVal = static_cast<unsigned char>(magnitude);
-
-            // We write the result to the output buffer
-            int outIdx = y * stride + x * 4;
-            output[outIdx + 0] = edgeVal; // Blue
-            output[outIdx + 1] = edgeVal; // Green
-            output[outIdx + 2] = edgeVal; // Red
-
-            // We copy the original alpha channel
-            output[outIdx + 3] = data[outIdx + 3];
+            int magnitude = abs(sumX) + abs(sumY);
+            if (magnitude > 255)
+                magnitude = 255;
+            outputImage[y * width + x] = static_cast<unsigned char>(magnitude);
         }
     }
 
-    // Edge pixel support - we copy them without changes from the original
-    for (int y = 0; y < height; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
-            if (y == 0 || y == height - 1 || x == 0 || x == width - 1)
-            {
-                int idx = y * stride + x * 4;
-                output[idx + 0] = data[idx + 0];
-                output[idx + 1] = data[idx + 1];
-                output[idx + 2] = data[idx + 2];
-                output[idx + 3] = data[idx + 3];
-            }
-        }
-    }
-
-    // We copy the result from the buffer to the original image memory
-    memcpy(data, output.data(), height * stride);
 }
